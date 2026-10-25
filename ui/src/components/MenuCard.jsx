@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { formatWon, linePrice } from '../data/menus'
 
-export default function MenuCard({ menu, onAdd }) {
+export default function MenuCard({ menu, reserved, onAdd }) {
   const [shot, setShot] = useState(false)
   const [syrup, setSyrup] = useState(false)
   const soldOut = menu.stock <= 0
+  const available = Math.max(0, menu.stock - reserved)
 
   function handleAdd() {
-    if (soldOut) return
-    onAdd(menu, shot, syrup)
-    setShot(false)
-    setSyrup(false)
+    if (soldOut || available <= 0) return
+    const added = onAdd(menu, shot, syrup)
+    if (added !== false) {
+      setShot(false)
+      setSyrup(false)
+    }
   }
 
   return (
@@ -20,6 +23,10 @@ export default function MenuCard({ menu, onAdd }) {
       </div>
       <h2 className="menu-name">{menu.name}</h2>
       <p className="menu-price">{formatWon(linePrice(menu.price, shot))}</p>
+      <p className="menu-stock">
+        재고 {menu.stock}잔
+        {reserved > 0 ? ` · 담은 ${reserved}잔` : ''}
+      </p>
       <p className="menu-desc">{menu.description}</p>
       <label className="option">
         <input
@@ -42,10 +49,10 @@ export default function MenuCard({ menu, onAdd }) {
       <button
         type="button"
         className="btn"
-        disabled={soldOut}
+        disabled={soldOut || available <= 0}
         onClick={handleAdd}
       >
-        {soldOut ? '품절' : '담기'}
+        {soldOut ? '품절' : available <= 0 ? '재고 없음' : '담기'}
       </button>
     </article>
   )

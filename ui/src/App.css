@@ -93,6 +93,12 @@
   font-size: 0.95rem;
 }
 
+.menu-stock {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .menu-desc {
   margin: 8px 0 10px;
   color: var(--muted);
@@ -160,11 +166,25 @@
 }
 
 .cart-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 6px;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
   font-size: 0.92rem;
+}
+
+.cart-qty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-remove {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
 }
 
 .cart-empty,
@@ -210,9 +230,39 @@
   font-size: 1rem;
 }
 
-.dashboard-line {
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.dashboard-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.dashboard-label,
+.dashboard-count,
+.stock-count,
+.stock-status,
+.order-id,
+.order-time,
+.order-total,
+.order-status,
+.order-items p {
   margin: 0;
-  font-size: 0.95rem;
+}
+
+.dashboard-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.dashboard-count {
+  margin-top: 6px;
+  font-size: 1.6rem;
+  font-weight: 700;
 }
 
 .stock-grid {
@@ -224,24 +274,55 @@
 .stock-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
 }
 
 .stock-name {
-  font-size: 0.92rem;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
-.stock-input-row {
+.stock-meta {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
 }
 
-.stock-input-row input {
-  width: 72px;
-  padding: 4px 6px;
-  border: 1px solid var(--line);
+.stock-count {
+  font-size: 1.1rem;
+}
+
+.stock-status {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.stock-status.is-정상 {
+  color: #15803d;
+}
+
+.stock-status.is-주의 {
+  color: #c2410c;
+}
+
+.stock-status.is-품절 {
+  color: #b91c1c;
+}
+
+.stock-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.stock-btn {
+  min-width: 36px;
+  margin-top: 0;
+  padding: 4px 10px;
 }
 
 .order-list {
@@ -252,10 +333,10 @@
 
 .order-row {
   display: grid;
-  grid-template-columns: 56px 100px 1fr auto;
+  grid-template-columns: 140px 1fr 90px 72px auto;
   gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 10px 0;
   font-size: 0.92rem;
 }
 
@@ -269,6 +350,20 @@
   gap: 2px;
 }
 
+.order-id {
+  font-weight: 700;
+}
+
+.order-time {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.order-total,
+.order-status {
+  font-weight: 700;
+}
+
 .order-row .btn {
   margin-top: 0;
 }
@@ -276,6 +371,8 @@
 @media (max-width: 768px) {
   .menu-grid,
   .cart,
+  .cart-row,
+  .dashboard-grid,
   .stock-grid,
   .order-row {
     grid-template-columns: 1fr;

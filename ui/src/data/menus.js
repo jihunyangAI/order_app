@@ -61,3 +61,19 @@ export function nextStatus(status) {
   if (index === -1 || index === ORDER_STATUSES.length - 1) return status
   return ORDER_STATUSES[index + 1]
 }
+
+export function stockLabel(stock) {
+  if (stock <= 0) return '품절'
+  if (stock < 5) return '주의'
+  return '정상'
+}
+
+export function formatDateTime(value) {
+  const date = new Date(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hour}:${minute}`
+}
