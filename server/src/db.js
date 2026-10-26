@@ -35,8 +35,14 @@ const INITIAL_OPTIONS = [
   { name: '시럽추가', price: 0 },
 ]
 
+const connectionString = process.env.DATABASE_URL || ''
+const useSsl =
+  process.env.DATABASE_SSL === 'true' ||
+  /sslmode=require|render\.com/i.test(connectionString)
+
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 })
 
 export async function connectWithRetry(retries = 20) {

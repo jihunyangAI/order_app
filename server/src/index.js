@@ -283,8 +283,8 @@ app.patch('/api/orders/:id/status', async (req, res) => {
 async function start() {
   await connectWithRetry()
   await setupDatabase()
-  app.listen(port, () => {
-    console.log(`API http://127.0.0.1:${port}`)
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`API http://0.0.0.0:${port}`)
   })
 }
 
