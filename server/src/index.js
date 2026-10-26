@@ -19,6 +19,16 @@ const port = Number(process.env.PORT) || 3001
 app.use(cors())
 app.use(express.json())
 
+app.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'order-app-api',
+    health: '/api/health',
+    menus: '/api/menus',
+    orders: '/api/orders',
+  })
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
 })
