@@ -1,10 +1,11 @@
-import { formatWon, optionLabel } from '../data/menus'
+import { formatWon, itemLabel } from '../data/menus'
 import { cartQtyForMenu } from '../data/storage'
 
 export default function Cart({
   items,
   menus,
   message,
+  ordering,
   onChangeQty,
   onRemove,
   onOrder,
@@ -23,8 +24,7 @@ export default function Cart({
         ) : (
           <ul className="cart-list">
             {items.map((item) => {
-              const extra = optionLabel(item.shot, item.syrup)
-              const name = extra ? `${item.name}(${extra})` : item.name
+              const name = itemLabel(item)
               const menu = menus.find((entry) => entry.id === item.menuId)
               const canIncrease =
                 menu && cartQtyForMenu(items, item.menuId) < menu.stock
@@ -71,7 +71,7 @@ export default function Cart({
         <button
           type="button"
           className="btn"
-          disabled={empty}
+          disabled={empty || ordering}
           onClick={onOrder}
         >
           주문하기

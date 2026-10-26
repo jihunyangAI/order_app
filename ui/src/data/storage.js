@@ -1,30 +1,18 @@
-import { INITIAL_MENUS } from './menus'
-
 export const STORAGE_KEY = 'cozydy-state'
 
-export function loadSavedState() {
+export function loadSavedCart() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
+    if (!raw) return []
     const data = JSON.parse(raw)
-    if (!data || typeof data !== 'object') return null
-    return data
+    return Array.isArray(data?.cart) ? data.cart : []
   } catch {
-    return null
+    return []
   }
 }
 
-export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-}
-
-export function menusFromSaved(saved) {
-  const stocks = saved?.stocks ?? {}
-  return INITIAL_MENUS.map((menu) =>
-    Number.isInteger(stocks[menu.id])
-      ? { ...menu, stock: Math.max(0, stocks[menu.id]) }
-      : menu,
-  )
+export function saveCart(cart) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ cart }))
 }
 
 export function cartQtyForMenu(cart, menuId) {

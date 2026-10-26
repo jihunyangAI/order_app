@@ -2,54 +2,81 @@ import { useEffect, useRef, useState } from 'react'
 import AdminPage from './components/AdminPage'
 import Header from './components/Header'
 import OrderPage from './components/OrderPage'
-import { lineKey, linePrice } from './data/menus'
+import {
+  createOrder,
+  fetchMenus,
+  fetchOrders,
+  updateOrderStatus,
+  updateStock,
+} from './data/api'
+import { lineKey, linePrice, menusWithImages } from './data/menus'
 import {
   cartQtyForMenu,
   clampCart,
-  loadSavedState,
-  menusFromSaved,
-  saveState,
+  loadSavedCart,
+  saveCart,
 } from './data/storage'
 import './App.css'
 
-const saved = loadSavedState()
-
 export default function App() {
   const [page, setPage] = useState('order')
-  const [menus, setMenus] = useState(() => menusFromSaved(saved))
-  const [orders, setOrders] = useState(() =>
-    Array.isArray(saved?.orders) ? saved.orders : [],
-  )
-  const [nextOrderId, setNextOrderId] = useState(() =>
-    Number.isInteger(saved?.nextOrderId) ? saved.nextOrderId : 1,
-  )
-  const [cart, setCart] = useState(() =>
-    Array.isArray(saved?.cart) ? saved.cart : [],
-  )
+  const [menus, setMenus] = useState([])
+  const [orders, setOrders] = useState([])
+  const [cart, setCart] = useState(loadSavedCart)
   const [message, setMessage] = useState('')
+  const [ready, setReady] = useState(false)
+  const [busy, setBusy] = useState(false)
   const cartRef = useRef(cart)
   const menusRef = useRef(menus)
   cartRef.current = cart
   menusRef.current = menus
 
   useEffect(() => {
-    saveState({
-      stocks: Object.fromEntries(menus.map((menu) => [menu.id, menu.stock])),
-      orders,
-      nextOrderId,
-      cart,
-    })
-  }, [menus, orders, nextOrderId, cart])
+    saveCart(cart)
+  }, [cart])
 
-  function addToCart(menu, shot, syrup) {
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const [menuRows, orderRows] = await Promise.all([
+          fetchMenus(),
+          fetchOrders(),
+        ])
+        if (cancelled) return
+        const nextMenus = menusWithImages(menuRows)
+        menusRef.current = nextMenus
+        setMenus(nextMenus)
+        setOrders(orderRows)
+        setCart((current) => clampCart(current, nextMenus))
+        setReady(true)
+      } catch {
+        if (!cancelled) {
+          setMessage('서버에 연결하지 못했습니다.')
+        }
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function addToCart(menu, optionIds = []) {
     const current = cartRef.current
     if (cartQtyForMenu(current, menu.id) >= menu.stock) {
       setMessage(`${menu.name} 재고가 부족합니다.`)
       return false
     }
 
-    const key = lineKey(menu.id, shot, syrup)
-    const unitPrice = linePrice(menu.price, shot)
+    const selected = [...optionIds].sort((a, b) => a - b)
+    const key = lineKey(menu.id, selected)
+    const unitPrice = linePrice(menu.price, menu.options, selected)
+    const options = (menu.options || []).filter((option) =>
+      selected.includes(option.id),
+    )
     const found = current.find((item) => item.key === key)
     const next = found
       ? current.map((item) =>
@@ -61,8 +88,10 @@ export default function App() {
             key,
             menuId: menu.id,
             name: menu.name,
-            shot,
-            syrup,
+            optionIds: selected,
+            options,
+            shot: options.some((option) => option.name === '샷추가'),
+            syrup: options.some((option) => option.name === '시럽추가'),
             unitPrice,
             qty: 1,
           },
@@ -107,89 +136,100 @@ export default function App() {
     setMessage('')
   }
 
-  function placeOrder() {
+  async function placeOrder() {
+    if (busy) return
     if (cart.length === 0) {
       setMessage('메뉴를 담아주세요.')
       return
     }
 
-    const needed = {}
-    for (const item of cart) {
-      needed[item.menuId] = (needed[item.menuId] || 0) + item.qty
+    setBusy(true)
+    try {
+      const order = await createOrder(cart)
+      const nextMenus = menusWithImages(await fetchMenus())
+      menusRef.current = nextMenus
+      cartRef.current = []
+      setMenus(nextMenus)
+      setOrders((current) => [order, ...current])
+      setCart([])
+      setMessage('주문이 접수되었습니다.')
+    } catch (error) {
+      setMessage(error.message)
+    } finally {
+      setBusy(false)
     }
+  }
 
-    const short = menus.find((menu) => (needed[menu.id] || 0) > menu.stock)
-    if (short) {
-      setMessage(`${short.name} 재고가 부족합니다.`)
-      return
+  async function adjustStock(menuId, delta) {
+    if (busy) return
+    setBusy(true)
+    try {
+      const updated = await updateStock(menuId, delta)
+      const nextMenus = menusRef.current.map((menu) =>
+        menu.id === updated.id ? { ...menu, stock: updated.stock } : menu,
+      )
+      const nextCart = clampCart(cartRef.current, nextMenus)
+      menusRef.current = nextMenus
+      cartRef.current = nextCart
+      setMenus(nextMenus)
+      setCart(nextCart)
+      setMessage('')
+    } catch {
+      setMessage('재고를 저장하지 못했습니다.')
+    } finally {
+      setBusy(false)
     }
-
-    const total = cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0)
-
-    setMenus((current) =>
-      current.map((menu) =>
-        needed[menu.id]
-          ? { ...menu, stock: menu.stock - needed[menu.id] }
-          : menu,
-      ),
-    )
-    setOrders((current) => [
-      {
-        id: nextOrderId,
-        status: '주문접수',
-        createdAt: new Date().toISOString(),
-        items: cart,
-        total,
-      },
-      ...current,
-    ])
-    setNextOrderId((value) => value + 1)
-    cartRef.current = []
-    setCart([])
-    setMessage('주문이 접수되었습니다.')
   }
 
-  function adjustStock(menuId, delta) {
-    const nextMenus = menusRef.current.map((menu) =>
-      menu.id === menuId
-        ? { ...menu, stock: Math.max(0, menu.stock + delta) }
-        : menu,
-    )
-    const nextCart = clampCart(cartRef.current, nextMenus)
-    menusRef.current = nextMenus
-    cartRef.current = nextCart
-    setMenus(nextMenus)
-    setCart(nextCart)
+  async function startMaking(orderId) {
+    if (busy) return
+    setBusy(true)
+    try {
+      const updated = await updateOrderStatus(orderId, '제조중')
+      setOrders((current) =>
+        current.map((order) => (order.id === updated.id ? updated : order)),
+      )
+      setMessage('')
+    } catch {
+      setMessage('주문 상태를 변경하지 못했습니다.')
+    } finally {
+      setBusy(false)
+    }
   }
 
-  function startMaking(orderId) {
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === orderId && order.status === '주문접수'
-          ? { ...order, status: '제조중' }
-          : order,
-      ),
-    )
-  }
-
-  function completeOrder(orderId) {
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === orderId && order.status === '제조중'
-          ? { ...order, status: '제조완료' }
-          : order,
-      ),
-    )
+  async function completeOrder(orderId) {
+    if (busy) return
+    setBusy(true)
+    try {
+      const updated = await updateOrderStatus(orderId, '제조완료')
+      setOrders((current) =>
+        current.map((order) => (order.id === updated.id ? updated : order)),
+      )
+      setMessage('')
+    } catch {
+      setMessage('주문 상태를 변경하지 못했습니다.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
     <div className="app">
-      <Header page={page} onNavigate={setPage} />
-      {page === 'order' ? (
+      <Header
+        page={page}
+        onNavigate={(next) => {
+          setPage(next)
+          setMessage('')
+        }}
+      />
+      {!ready ? (
+        <p className="app-message">{message || '불러오는 중...'}</p>
+      ) : page === 'order' ? (
         <OrderPage
           menus={menus}
           cart={cart}
           message={message}
+          ordering={busy}
           onAdd={addToCart}
           onChangeQty={changeCartQty}
           onRemove={removeCartItem}
@@ -199,6 +239,7 @@ export default function App() {
         <AdminPage
           menus={menus}
           orders={orders}
+          message={message}
           onStockAdjust={adjustStock}
           onStartMaking={startMaking}
           onCompleteOrder={completeOrder}

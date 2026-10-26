@@ -15,6 +15,7 @@ const DASHBOARD_ITEMS = [
 export default function AdminPage({
   menus,
   orders,
+  message,
   onStockAdjust,
   onStartMaking,
   onCompleteOrder,
@@ -28,6 +29,7 @@ export default function AdminPage({
 
   return (
     <main className="admin-page">
+      {message ? <p className="admin-message">{message}</p> : null}
       <section className="admin-block" aria-labelledby="dashboard-title">
         <h2 id="dashboard-title" className="admin-title">
           관리자 대시보드

@@ -41,6 +41,12 @@
   font-weight: 700;
 }
 
+.app-message,
+.admin-message,
+.menu-empty {
+  margin: 0 0 12px;
+}
+
 .order-page {
   display: flex;
   flex-direction: column;

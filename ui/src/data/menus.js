@@ -32,28 +32,50 @@ export const INITIAL_MENUS = [
   },
 ]
 
+export function menusWithImages(menus) {
+  return menus.map((menu) => {
+    const local = INITIAL_MENUS.find((entry) => entry.id === menu.id)
+    return {
+      ...menu,
+      image: menu.image || local?.image || '',
+      description: menu.description || local?.description || '',
+      options: Array.isArray(menu.options) ? menu.options : [],
+    }
+  })
+}
+
 export function formatWon(value) {
   return `${value.toLocaleString('ko-KR')}원`
 }
 
-export function optionLabel(shot, syrup) {
+export function optionNames(item) {
+  if (Array.isArray(item.options) && item.options.length > 0) {
+    return item.options.map((option) => option.name || option)
+  }
   const parts = []
-  if (shot) parts.push('샷추가')
-  if (syrup) parts.push('시럽추가')
-  return parts.join(', ')
+  if (item.shot) parts.push('샷추가')
+  if (item.syrup) parts.push('시럽추가')
+  return parts
+}
+
+export function optionLabel(shot, syrup) {
+  return optionNames({ shot, syrup }).join(', ')
 }
 
 export function itemLabel(item) {
-  const extra = optionLabel(item.shot, item.syrup)
+  const extra = optionNames(item).join(', ')
   return extra ? `${item.name}(${extra})` : item.name
 }
 
-export function lineKey(menuId, shot, syrup) {
-  return `${menuId}|${shot ? 1 : 0}|${syrup ? 1 : 0}`
+export function lineKey(menuId, optionIds = []) {
+  return `${menuId}|${[...optionIds].sort((a, b) => a - b).join('-')}`
 }
 
-export function linePrice(basePrice, shot) {
-  return basePrice + (shot ? SHOT_PRICE : 0)
+export function linePrice(basePrice, options = [], optionIds = []) {
+  const extra = options
+    .filter((option) => optionIds.includes(option.id))
+    .reduce((sum, option) => sum + option.price, 0)
+  return basePrice + extra
 }
 
 export function nextStatus(status) {
